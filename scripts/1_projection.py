@@ -16,9 +16,11 @@ if __name__ == "__main__":
 
     # Generate a set of camera intrinsics for rendering.
     k = torch.eye(3, dtype=torch.float32)
-    k[:2, 2] = 0.5
+    k[:3, 2] = 0.5
     k = repeat(k, "i j -> b i j", b=NUM_STEPS)
-
+    # print(vertices.shape)
+    # print(c2w.shape)
+    # print(k.shape)
     # Render the point cloud.
     images = render_point_cloud(vertices, c2w, k)
 

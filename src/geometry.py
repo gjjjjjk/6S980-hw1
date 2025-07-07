@@ -1,6 +1,8 @@
-from jaxtyping import Float
+from jaxtyping import Float,jaxtyped
 from torch import Tensor
 import torch
+
+
 
 
 def homogenize_points(
@@ -30,7 +32,7 @@ def transform_rigid(
     # 确保输入维度正确
     assert xyz.size(-1) == 4, "输入必须是齐次坐标"
     assert transform.size(-1) == 4 and transform.size(-2) == 4, "需要4x4变换矩阵"
-    
+    print(transform)
     # 应用变换：x' = T @ x
     # 使用torch.matmul自动处理批次维度
     return torch.matmul(transform, xyz.unsqueeze(-1)).squeeze(-1)
@@ -39,8 +41,8 @@ def transform_rigid(
 
 def transform_world2cam(
     xyz: Float[Tensor, "*#batch 4"],
-    cam2world: Float[Tensor, "*#batch 4 4"],
-) -> Float[Tensor, "*batch 4"]:
+    cam2world: Float[Tensor, "*_batch 4 4"],
+) -> Float[Tensor, "6 *batch 4"]:
     """Transform points or vectors from homogeneous 3D world coordinates to homogeneous
     3D camera coordinates.
     """
@@ -51,9 +53,9 @@ def transform_world2cam(
     
     # 计算世界->相机的变换：world2cam = inv(cam2world)
     world2cam = torch.inverse(cam2world)
-    
+
     # 应用变换：x_cam = world2cam @ x_world
-    return torch.matmul(world2cam, xyz.unsqueeze(-1)).squeeze(-1)
+    return  torch.einsum('bij,cj->bci', world2cam, xyz)
 
 
 def transform_cam2world(
@@ -62,7 +64,7 @@ def transform_cam2world(
 ) -> Float[Tensor, "*batch 4"]:
     """Transform points or vectors from homogeneous 3D camera coordinates to homogeneous
     3D world coordinates.
-    """
+    """ 
 
     # 输入验证
     assert xyz.size(-1) == 4, "输入必须是齐次坐标"
@@ -73,8 +75,8 @@ def transform_cam2world(
 
 def project(
     xyz: Float[Tensor, "*#batch 4"],
-    intrinsics: Float[Tensor, "*#batch 3 3"],
-) -> Float[Tensor, "*batch 2"]:
+    intrinsics: Float[Tensor, "*_batch 3 3"],
+) -> Float[Tensor, "6 *#batch 2"]:
     """Project homogenized 3D points in camera coordinates to pixel coordinates."""
     
     """将相机坐标系下的3D点投影到像素坐标系
@@ -90,11 +92,16 @@ def project(
     assert xyz.size(-1) == 4, "输入必须是齐次坐标"
     assert intrinsics.size(-1) == 3 and intrinsics.size(-2) == 3, "需要3x3内参矩阵"
     
-    # 透视除法 (x/z, y/z)，处理w分量和z分量
-    z = xyz[..., 2:3] / xyz[..., 3:4]  # 处理齐次坐标w分量
-    uv = xyz[..., :2] / z.clamp(min=1e-6)  # 避免除零
-    
-    # 应用内参变换 [u,v,1]^T = K @ [x/z, y/z, 1]^T
-    return torch.einsum('...ij,...j->...i', intrinsics[..., :2, :], 
-                       torch.cat([uv, torch.ones_like(uv[..., :1])], dim=-1))[..., :2]
+    # intrinsics[..., :2 , 0:2] = 1.0/256
+    # intrinsics[..., :2 , 2:3] = 0.5/256
+    k0 = torch.cat([intrinsics, torch.zeros_like(intrinsics[..., :1])],dim=-1)
+    print(xyz.shape)
+    print(k0.shape)
+    i = torch.einsum('bij,bcj->bci', k0, xyz)
+    print(i.shape)
+    # i2 = i[...,:2] / i[..., 2:3].clamp(min=1e-6)
+    #print(i2.shape)
+    i2 = i[..., :2] / i[..., 2:3]
+    print(i2.shape)
+    return i2
 

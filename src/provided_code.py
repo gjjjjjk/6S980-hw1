@@ -16,6 +16,7 @@ FloatImage = Union[
     Float[Tensor, "height width"],
     Float[Tensor, "channel height width"],
     Float[Tensor, "batch channel height width"],
+    Float[Tensor, "16 *batch 2"]
 ]
 
 
@@ -158,4 +159,5 @@ def plot_point_cloud(
     ax.set_ylim(ylim)
 
     ax.scatter(*vertices.T, alpha=alpha, marker=",", lw=0.5, s=1, color="black")
-    plt.savefig('output.png')  # 保存为文件
+    # plt.savefig('3d.png')  # 保存为文件
+
