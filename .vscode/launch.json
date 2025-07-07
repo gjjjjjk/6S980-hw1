@@ -25,5 +25,12 @@
             "module": "scripts.2_puzzle",
             "justMyCode": true
         },
+        {
+            "name": "Part 3: 3d rebuild",
+            "type": "python",
+            "request": "launch",
+            "module": "scripts.3_rebuild",
+            "justMyCode": true
+        },
     ]
 }
