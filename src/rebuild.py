@@ -146,3 +146,45 @@ def plot_model(points : NDArray[np.float32]):
 
     # 可视化
     mesh.show()
+
+
+def closest_points_between_rays(P1, d1, P2, d2):
+    """
+    计算两条射线之间的最近点。
+    
+    参数:
+        P1, P2: 射线起点的坐标 (np.array, shape=(3,)).
+        d1, d2: 射线的方向向量 (np.array, shape=(3,)), 需为单位向量.
+    
+    返回:
+        Q1: 射线1上的最近点.
+        Q2: 射线2上的最近点.
+        distance: 最近距离.
+    """
+    # 确保方向向量是单位向量
+    d1 = d1 / np.linalg.norm(d1)
+    d2 = d2 / np.linalg.norm(d2)
+    
+    # 计算叉积和差值向量
+    d1_cross_d2 = np.cross(d1, d2)
+    P1_minus_P2 = P1 - P2
+    
+    # 处理平行射线（叉积为零向量）
+    if np.linalg.norm(d1_cross_d2) < 1e-6:
+        # 平行射线，任选起点计算距离
+        t = np.dot(P2 - P1, d1) / np.dot(d1, d1)
+        Q1 = P1 + t * d1
+        Q2 = P2
+        distance = np.linalg.norm(Q1 - Q2)
+        return Q1, Q2, distance
+    
+    # 计算参数 s 和 t
+    s = (np.cross(d2, P1_minus_P2) @ d1_cross_d2) / (np.linalg.norm(d1_cross_d2) ** 2)
+    t = (np.cross(d1, P1_minus_P2) @ d1_cross_d2) / (np.linalg.norm(d1_cross_d2) ** 2)
+    
+    # 计算最近点
+    Q1 = P1 + s * d1
+    Q2 = P2 + t * d2
+    distance = np.linalg.norm(Q1 - Q2)
+    
+    return Q1, Q2, distance
